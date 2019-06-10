@@ -253,11 +253,11 @@ func main() {
 			}
 		}
 
-		// update Godeps.json to point to actual tagged version in the dependencies. This version might differ
-		// from the one currently in Godeps.json because the other repo could have gotten more commit for this
+		// update go.mod to point to actual tagged version in the dependencies. This version might differ
+		// from the one currently in go.mod because the other repo could have gotten more commit for this
 		// tag, but this repo didn't. Compare https://github.com/kubernetes/publishing-bot/issues/12 for details.
 		if len(dependentRepos) > 0 {
-			fmt.Printf("Checking that Godeps.json points to the actual tags in %s.\n", strings.Join(dependentRepos, ", "))
+			fmt.Printf("Checking that go.mod points to the actual tags in %s.\n", strings.Join(dependentRepos, ", "))
 			wt, err := r.Worktree()
 			if err != nil {
 				glog.Fatalf("Failed to get working tree: %v", err)
@@ -266,21 +266,21 @@ func main() {
 			if err := wt.Checkout(&gogit.CheckoutOptions{Hash: bh}); err != nil {
 				glog.Fatalf("Failed to checkout %v: %v", bh, err)
 			}
-			changed, err := updateGodepsJsonWithTaggedDependencies(r, bName, dependentRepos)
+			changed, err := updateGomodWithTaggedDependencies(bName, dependentRepos)
 			if err != nil {
-				glog.Fatalf("Failed to update Godeps.json for tag %s: %v", bName, err)
+				glog.Fatalf("Failed to update go.mod and go.sum for tag %s: %v", bName, err)
 			}
 			if changed {
 				fmt.Printf("Adding extra commit fixing dependencies to point to %s tags.\n", bName)
 				publishingBotNow := publishingBot
 				publishingBotNow.When = time.Now()
-				bh, err = wt.Commit(fmt.Sprintf("Fix Godeps.json to point to %s tags", bName), &gogit.CommitOptions{
+				bh, err = wt.Commit(fmt.Sprintf("Fix go.mod and go.sum to point to %s tags", bName), &gogit.CommitOptions{
 					All:       true,
 					Author:    &publishingBotNow,
 					Committer: &publishingBotNow,
 				})
 				if err != nil {
-					glog.Fatalf("Failed to commit Godeps/Godeps.json changes: %v", err)
+					glog.Fatalf("Failed to commit go.mod and go.sum changes: %v", err)
 				}
 			}
 		}

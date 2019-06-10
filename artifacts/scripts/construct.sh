@@ -142,18 +142,32 @@ PUSH_SCRIPT=../push-tags-${REPO}-${DST_BRANCH}.sh
 echo "#!/bin/bash" > ${PUSH_SCRIPT}
 chmod +x ${PUSH_SCRIPT}
 
-# if [ -z "${SKIP_TAGS}" ]; then
-#    /sync-tags --prefix "$(echo ${SOURCE_REPO_NAME})-" \
-#               --commit-message-tag $(echo ${SOURCE_REPO_NAME} | sed 's/^./\L\u&/')-commit \
-#               --source-remote upstream --source-branch "${SRC_BRANCH}" \
-#               --push-script ${PUSH_SCRIPT} \
-#               --dependencies "${DEPS}" \
-#               --mapping-output-file "../tag-${REPO}-{{.Tag}}-mapping" \
-#               -alsologtostderr \
-#               "${EXTRA_ARGS[@]-}"
-#    if [ "${LAST_HEAD}" != "$(git rev-parse ${LAST_BRANCH})" ]; then
-#        echo "Unexpected: branch ${LAST_BRANCH} has diverted to $(git rev-parse HEAD) from ${LAST_HEAD} before tagging."
-#        exit 1
-#    fi
-# fi
+if [ -z "${SKIP_TAGS}" ]; then
+    /sync-tags --prefix "$(echo ${SOURCE_REPO_NAME})-" \
+               --commit-message-tag $(echo ${SOURCE_REPO_NAME} | sed 's/^./\L\u&/')-commit \
+               --source-remote upstream --source-branch "${SRC_BRANCH}" \
+               --push-script ${PUSH_SCRIPT} \
+               --dependencies "${DEPS}" \
+               --mapping-output-file "../tag-${REPO}-{{.Tag}}-mapping" \
+               -alsologtostderr \
+               "${EXTRA_ARGS[@]-}"
+    if [ "${LAST_HEAD}" != "$(git rev-parse ${LAST_BRANCH})" ]; then
+        echo "Unexpected: branch ${LAST_BRANCH} has diverted to $(git rev-parse HEAD) from ${LAST_HEAD} before tagging."
+        exit 1
+    fi
+
+    # generate Godeps/Godeps.json from go.mod
+    if [ "${PUBLISHER_BOT_GENERATE_GODEPS:-}" == true ]; then
+        echo "Resolving dependencies for Godeps.json generation"
+        GOPROXY="file://${GOPATH}/pkg/mod/cache/download" GO111MODULE=on go list -m -json all > /tmp/go-list
+        /godeps-gen /tmp/go-list Godeps/Godeps.json
+        git add Godeps/Godeps.json
+        if ! git-index-clean; then
+            git commit -q -m "sync: update Godeps/Godeps.json"
+            echo "Godeps.json generated based on go.mod"
+        fi
+    fi
+fi
+
+
 git checkout ${LAST_BRANCH}
