@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: publisher-config
+data:
+  config: |
+    # this specifies the source repository coordinates (org/name)
+    source-org: kubernetes
+    source-repo: kubernetes
+    # the github org or user to publish the new repos to
+    target-org: nikhita
+
+    # file path or URL
+    # rules-file: /etc/publisher-rules/config
+    rules-file: https://raw.githubusercontent.com/kubernetes/kubernetes/master/staging/publishing/rules.yaml
+
+    # the github issue number in the source repo to publish logs to on errors. You must be
+    # able to write to that issue. So you probably should create it with the bot user.
+    # REMEMBER: do not run the bot with a user that can close arbitrary issues in the
+    #           source repo as that will trigger unwanted close events on push.
+    # github-issue: 56916
+
+    # if true, no push will be done. The bot will stop just before.
+    dry-run: true
+
+    # the github application token to use
+    # CAUTION: do not check this into Github. You can also and probably should pass that as
+    #          TOKEN=<yourtoken> to the "make deploy" command.
+    # token: <yourtoken>
+
+    # the base path where the bot will look for a publish scripts in the source
+    # repository. Default value is "./publish_scripts".
+    # base-publish-script-path: <path>
